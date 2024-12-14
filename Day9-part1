@@ -1,0 +1,82 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Function to parse the input disk map into blocks
+void parseDiskMap(const char* input, int* blocks, int* size) {
+    int index = 0;
+    for (int i = 0; input[i] != '\0'; i += 2) {
+        int fileLength = input[i] - '0'; // File length
+        int freeLength = input[i + 1] ? input[i + 1] - '0' : 0; // Free space length
+        for (int j = 0; j < fileLength; j++) {
+            blocks[index++] = i / 2; // File ID
+        }
+        for (int j = 0; j < freeLength; j++) {
+            blocks[index++] = -1; // Free space
+        }
+    }
+    *size = index;
+}
+
+// Function to compact the disk
+void compactDisk(int* blocks, int size) {
+    int writeIndex = 0;
+    for (int readIndex = 0; readIndex < size; readIndex++) {
+        if (blocks[readIndex] != -1) { // If it's a file block
+            blocks[writeIndex++] = blocks[readIndex];
+        }
+    }
+    // Fill remaining spaces with -1 (free space)
+    for (int i = writeIndex; i < size; i++) {
+        blocks[i] = -1;
+    }
+}
+
+// Function to calculate the checksum
+long long calculateChecksum(int* blocks, int size) {
+    long long checksum = 0;
+    for (int i = 0; i < size; i++) {
+        if (blocks[i] != -1) { // Skip free spaces
+            checksum += (long long)i * blocks[i];
+        }
+    }
+    return checksum;
+}
+
+int main() {
+    char input[10000];
+    int blocks[20000]; // Large enough to hold parsed blocks
+    int size;
+
+    // Open the input file
+    FILE* file = fopen("Adv9.txt", "r");
+    if (file == NULL) {
+        perror("Error opening file");
+        return 1;
+    }
+
+    // Read the input disk map from the file
+    if (fgets(input, sizeof(input), file) == NULL) {
+        perror("Error reading file");
+        fclose(file);
+        return 1;
+    }
+    fclose(file);
+
+    // Remove any trailing newline character
+    input[strcspn(input, "\n")] = '\0';
+
+    // Parse the disk map
+    parseDiskMap(input, blocks, &size);
+
+    // Compact the disk
+    compactDisk(blocks, size);
+
+    // Calculate the checksum
+    long long checksum = calculateChecksum(blocks, size);
+
+    // Output the result
+    printf("Filesystem checksum: %lld\n", checksum);
+
+    return 0;
+}
